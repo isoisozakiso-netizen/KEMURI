@@ -1,0 +1,12 @@
+name = "kemuri"
+main = "src/index.js"
+compatibility_date = "2024-12-01"
+
+# 静的ファイル (index.html など) を配信する設定
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# ── KV (データ保存箱) は Cloudflare の画面で後から紐付けます ──
+# ダッシュボードで「Add binding」→ KV namespace →
+# Variable name: KEMURI_KV / Namespace: 作った KEMURI_KV
