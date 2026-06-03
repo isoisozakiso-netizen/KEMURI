@@ -1,0 +1,16 @@
+name = "kemuri"
+main = "src/index.js"
+compatibility_date = "2024-12-01"
+
+# 静的ファイル (index.html など) を配信する設定
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# ── KV (データ保存箱) ─────────────────────────────────
+# GitHub 経由のデプロイでは wrangler.toml が設定の正本になるため、
+# KV バインディングは必ずここに書く（ダッシュボードだけの設定は毎回消える）。
+# ↓ id は Cloudflare ダッシュボードの KEMURI_KV の ID に置き換えること。
+[[kv_namespaces]]
+binding = "KEMURI_KV"
+id = "63e9df7176f948ad89413b55e33f7c76"
