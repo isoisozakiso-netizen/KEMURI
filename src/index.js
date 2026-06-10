@@ -9,10 +9,10 @@
  * バインディング:
  *   env.ASSETS    → 静的ファイル配信 (wrangler.toml で設定済)
  *   env.KEMURI_KV → KV ストレージ (Cloudflare の画面で紐付け)
- *   env.HOTPEPPER_KEY → 環境変数 (任意。未設定時は FALLBACK_KEY)
+ *   env.HOTPEPPER_KEY → ホットペッパー API キー (Cloudflare Secret として設定)
+ *   env.SHARE_SECRET  → 共有トークン署名用シークレット (Cloudflare Secret)
  */
 
-const FALLBACK_KEY  = "e20bb74cbcf73dc2";
 const HOTPEPPER_BASE = "https://webservice.recruit.co.jp/hotpepper/gourmet/v1/";
 
 const CORS = {
@@ -42,7 +42,7 @@ async function handleSearch(request, env) {
   const reqStart = Math.max(1, parseInt(baseQs.get("start") || "1", 10) || 1);
   baseQs.delete("start");
 
-  baseQs.set("key", (env && env.HOTPEPPER_KEY) || FALLBACK_KEY);
+  baseQs.set("key", (env && env.HOTPEPPER_KEY) || "");
   baseQs.set("format", "json");
   baseQs.delete("large_area");
   baseQs.delete("service_area");
@@ -318,7 +318,8 @@ async function handleShops(request, env, ctx) {
 }
 
 // ──────────────────── シェア（トークン・OGP）────────────────────
-const FALLBACK_SHARE_SECRET = "ippuku-share-secret-2026";
+// 署名シークレットは env.SHARE_SECRET（Cloudflare Secret）から取得する。
+// 未設定の場合は共有トークンを発行・検証できない（安全側に倒す）。
 
 function _b64url(bytes){
   let s="";for(const b of bytes)s+=String.fromCharCode(b);
@@ -336,7 +337,7 @@ function _dateStr(offsetDays){
   return d.toISOString().split("T")[0];
 }
 async function verifyShareToken(shopId, token, secret){
-  if(!token) return false;
+  if(!token || !secret) return false;
   // 当日・前日のトークンを許容（日付またぎ対策 ≒ 24時間）
   for(const off of [0, -1]){
     const t = await shareToken(shopId, secret, _dateStr(off));
@@ -365,7 +366,8 @@ async function handleShareToken(request, env){
   const url = new URL(request.url);
   const shopId = url.searchParams.get("shopId");
   if(!shopId) return json({ error:"shopId required" }, 400);
-  const secret = (env && env.SHARE_SECRET) || FALLBACK_SHARE_SECRET;
+  const secret = env && env.SHARE_SECRET;
+  if(!secret) return json({ error:"share is not configured" }, 503);
   const token = await shareToken(shopId, secret, _dateStr(0));
   const shareUrl = `${url.origin}/s/${encodeURIComponent(shopId)}?t=${token}`;
   return json({ token, url: shareUrl });
@@ -386,7 +388,7 @@ async function handleSingleShop(request, env){
   // ホットペッパー店（id で直接取得）
   try{
     const qs = new URLSearchParams();
-    qs.set("key", (env && env.HOTPEPPER_KEY) || FALLBACK_KEY);
+    qs.set("key", (env && env.HOTPEPPER_KEY) || "");
     qs.set("format", "json");
     qs.set("id", id);
     const r = await fetch(`${HOTPEPPER_BASE}?${qs.toString()}`);
@@ -404,7 +406,7 @@ function escHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt
 async function handleSharePage(request, env, shopId){
   const url = new URL(request.url);
   const token = url.searchParams.get("t") || "";
-  const secret = (env && env.SHARE_SECRET) || FALLBACK_SHARE_SECRET;
+  const secret = (env && env.SHARE_SECRET) || "";
   const KV = env && env.KEMURI_KV;
   const valid = await verifyShareToken(shopId, token, secret);
   const meta = await lookupShopMeta(KV, shopId);
