@@ -648,6 +648,23 @@ export default {
     const sm = path.match(/^\/s\/([^/]+)\/?$/);
     if (sm) return handleSharePage(request, env, decodeURIComponent(sm[1]));
 
+    // トップページ: OGP の絶対URLを現在のオリジンに書き換えて配信
+    // （workers.dev サブドメイン変更や独自ドメイン化に自動追従するため）
+    if ((path === "/" || path === "/index.html") && env && env.ASSETS) {
+      try {
+        const res = await env.ASSETS.fetch(new Request(`${url.origin}/`));
+        let html = await res.text();
+        if (html) {
+          html = html.replace(/https:\/\/[a-z0-9.-]*\.workers\.dev/gi, url.origin)
+                     .replace(/https:\/\/kemuri-himeji\.pages\.dev/gi, url.origin);
+          return new Response(html, {
+            status: 200,
+            headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" },
+          });
+        }
+      } catch (_) {}
+    }
+
     // それ以外は静的ファイル (index.html など)
     if (env && env.ASSETS) return env.ASSETS.fetch(request);
     return new Response("Not Found", { status: 404 });
