@@ -1,0 +1,23 @@
+{
+  "name": "pukari",
+  "version": "1.0.0",
+  "description": "Find smoking-friendly restaurants in Himeji — a dependency-light Cloudflare Worker app.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "lint": "node scripts/validate.mjs",
+    "typecheck": "node -e \"console.log('No TypeScript in this project — skipping type check.')\"",
+    "build": "node scripts/validate.mjs",
+    "format": "node -e \"console.log('Prettier is not configured for this vanilla-JS project.')\""
+  },
+  "devDependencies": {
+    "wrangler": "^3.80.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/isoisozakiso-netizen/KEMURI.git"
+  }
+}
