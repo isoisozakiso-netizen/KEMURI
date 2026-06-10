@@ -2301,7 +2301,18 @@ function renderMap(){
   // 現在表示中のショップ一覧（filter 適用済み）を地図に
   // lat/lng が parseFloat 可能なものだけ含める（0 緯度などにも対応）
   const _hasCoord=s=>Number.isFinite(parseFloat(s.lat))&&Number.isFinite(parseFloat(s.lng));
-  let shopList=[...curShops,...customShops.filter(_hasCoord)];
+  // 手動店は一覧と同じ条件（ジャンル・キーワード・営業中・個室）で絞り込む
+  const genreName=GACHA_GENRE_NAMES[genre]||'';
+  const kwTerms=document.getElementById('kw').value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const customsFiltered=customShops.filter(s=>{
+    if(!_hasCoord(s))return false;
+    if(genre&&(s.genre||'').trim()!==genreName)return false;
+    if(kwTerms.length){const hay=((s.name||'')+' '+(s.address||'')+' '+(s.genre||'')+' '+(s.memo||'')).toLowerCase();if(!kwTerms.every(t=>hay.includes(t)))return false;}
+    if(fOpen&&openStatus(s).open===false)return false;
+    if(fPrivate)return false;
+    return true;
+  });
+  let shopList=[...curShops,...customsFiltered];
   // 禁煙票が入った店舗は地図からも除外
   shopList=shopList.filter(s=>!isNopeMaj(s.id));
   // 投票フィルタも適用
