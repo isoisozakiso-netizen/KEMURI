@@ -553,6 +553,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;opacity:0.04;
 #pv-img{max-width:100%;max-height:90vh;object-fit:contain;border-radius:6px;}
 .pv-close{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:14px;background:rgba(255,255,255,.1);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;}
 .pv-report{position:absolute;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:rgba(232,85,45,.85);border:none;color:#fff;padding:8px 20px;border-radius:20px;font-size:12px;cursor:pointer;font-family:"Yu Mincho","游明朝","Noto Serif JP",serif;}
+/* 絵文字→画像（たばこ・鍵） */
+.emoji-img{height:1.4em;width:auto;object-fit:contain;vertical-align:-0.35em;display:inline-block;}
+.pw-lock-icon{height:26px;width:auto;object-fit:contain;vertical-align:-7px;}
 
 /* ══ 新ヘッダー ══ */
 .app-header{position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:8px;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top,0px));background:rgba(13,14,24,.85);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);border-bottom:1px solid var(--border-faint);}
@@ -636,7 +639,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;opacity:0.04;
   <div class="pw-copy">今夜の一服、ぷかりと探す。</div>
   <img class="ippuku-mark cat-pw" src="cat.png" alt="ぷかり" onerror="this.style.display='none'">
   <div class="pw-card">
-    <div class="pw-label">🔐 パスワードを入力してください</div>
+    <div class="pw-label"><img src="icon-lock.png" class="pw-lock-icon" alt="" onerror="this.replaceWith(document.createTextNode('🔐'))"> パスワードを入力してください</div>
     <input class="pw-input" id="pw-inp" type="password" maxlength="6" placeholder="• • • •" autocomplete="off" inputmode="numeric"/>
     <button class="pw-btn" id="pw-btn">入 場 す る</button>
     <div class="pw-err" id="pw-err"></div>
@@ -1762,7 +1765,7 @@ function scardHtml(s){
   // 喫煙タグ（投票がある場合のみ、上位を表示）
   const smokeTags=[];
   if(v.heat>0)smokeTags.push('<span class="smoking-tag tg-heat">🔥加熱式 '+v.heat+'</span>');
-  if(v.paper>0)smokeTags.push('<span class="smoking-tag tg-paper">🚬紙巻 '+v.paper+'</span>');
+  if(v.paper>0)smokeTags.push('<span class="smoking-tag tg-paper"><img src="icon-cig.png" class="emoji-img" alt="" onerror="this.replaceWith(document.createTextNode(\'🚬\'))">紙巻 '+v.paper+'</span>');
   if(v.room>0)smokeTags.push('<span class="smoking-tag tg-room">🚪喫煙所 '+v.room+'</span>');
 
   const metaParts=[];
@@ -2008,7 +2011,7 @@ function openShopModal(shopId){
   if(access)rows.push({i:'🚶',l:'ACCESS',v:_esc(access)});
   if(capacity)rows.push({i:'👥',l:'CAPACITY',v:_esc(capacity)});
   if(privateRoom)rows.push({i:'🚪',l:'個室',v:_esc(privateRoom)});
-  if(nonSmoking)rows.push({i:'🚬',l:'喫煙',v:_esc(nonSmoking)});
+  if(nonSmoking)rows.push({i:'<img src="icon-cig.png" class="emoji-img" alt="" onerror="this.replaceWith(document.createTextNode(\'🚬\'))">',l:'喫煙',v:_esc(nonSmoking)});
   if(memo)rows.push({i:'📝',l:'MEMO',v:_esc(memo).replace(/\n/g,'<br>')});
 
   const photoHtml=photo
