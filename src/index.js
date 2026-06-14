@@ -152,14 +152,25 @@ async function handleVotes(request, env) {
   if (request.method === "POST") {
     try {
       const { shopId, shopName, type, userId } = await request.json();
-      if (!shopId || !["heat","paper","room","nope"].includes(type)) {
+      if (!shopId || !["heat","paper","room","nope","cancel"].includes(type)) {
         return json({ error: "invalid params" }, 400);
       }
       const all = await readVotes(KV);
       if (!all[shopId]) all[shopId] = { name: "", heat: 0, paper: 0, room: 0, nope: 0, voters: {} };
       if (!all[shopId].voters) all[shopId].voters = {};
       all[shopId].name = shopName || all[shopId].name;
-      if (userId) {
+      if (type === "cancel") {
+        // 取り消しは投票した本人 (userId 必須) のみ
+        if (!userId) return json({ error: "userId required" }, 400);
+        const prev = all[shopId].voters[userId];
+        if (!prev) {
+          // すでに投票していなければ現状をそのまま返す（冪等）
+          const { voters, ...pub } = all[shopId];
+          return json(pub);
+        }
+        if (all[shopId][prev] > 0) all[shopId][prev]--;
+        delete all[shopId].voters[userId];
+      } else if (userId) {
         const prev = all[shopId].voters[userId];
         if (prev && all[shopId][prev] > 0) all[shopId][prev]--;
         all[shopId][type] = (all[shopId][type] || 0) + 1;

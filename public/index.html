@@ -1149,6 +1149,41 @@ async function castVote(shopId,shopName,type){
   }catch(_){}
   finally{voteInFlight=Math.max(0,voteInFlight-1);}
 }
+// 自分の投票だけ取り消す（サーバー側で userId 一致時のみ減算）
+async function cancelVote(shopId,shopName){
+  const prev=myVotes[shopId];
+  if(!prev)return; // そもそも投票していない
+  // 楽観的更新
+  if(votes[shopId]&&votes[shopId][prev]>0)votes[shopId][prev]--;
+  delete myVotes[shopId];
+  localStorage.setItem('kemuri_mv',JSON.stringify(myVotes));
+  lastVoteAt=Date.now();
+  _saveVotesCache();
+  rerenderCurrentTab();
+  voteInFlight++;
+  try{
+    const r=await fetch(IPPUKU_API_BASE+'/api/votes',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({shopId,shopName,type:'cancel',userId}),
+      cache:'no-store'
+    });
+    if(r.ok){
+      const updated=await r.json();
+      votes[shopId]={
+        heat:updated.heat||0,
+        paper:updated.paper||0,
+        room:updated.room||0,
+        nope:updated.nope||0,
+        name:updated.name||''
+      };
+      lastVoteAt=Date.now();
+      _saveVotesCache();
+      rerenderCurrentTab();
+    }
+  }catch(_){}
+  finally{voteInFlight=Math.max(0,voteInFlight-1);}
+}
 function rerenderCurrentTab(){
   if(typeof curTab==='undefined')return renderCards(curShops);
   if(curTab==='map')return renderMap();
@@ -2032,6 +2067,15 @@ function openShopModal(shopId){
     <div class="vbar-row"><div class="vblbl">紙巻可</div><div class="vbtrack"><div class="vbfill fill-paper" style="width:${pct(v.paper)}%"></div></div><div class="vbcnt">${v.paper}</div></div>
     <div class="vbar-row"><div class="vblbl">喫煙所</div><div class="vbtrack"><div class="vbfill fill-room" style="width:${pct(v.room)}%"></div></div><div class="vbcnt">${v.room}</div></div>
   </div>`:'<div style="text-align:center;color:var(--text3);font-size:11px;margin-top:8px;">まだ投票はありません</div>';
+  const cancelBtnHtml = myV
+    ? `<div style="text-align:center;margin-top:10px;">
+         <button type="button" onclick="cancelVoteInModal('${s.id}','${escName}')"
+           style="background:transparent;border:1px solid var(--border-faint);color:var(--text3);
+             font-size:11px;letter-spacing:0.1em;padding:6px 14px;border-radius:14px;cursor:pointer;">
+           自分の投票を取り消す
+         </button>
+       </div>`
+    : '';
   const voteHtml=`
     <div class="sm-vote">
       <div class="sm-vote-label">喫煙スタイルを投票 ${tot?`<span style="color:var(--text3);font-weight:400;">(${tot}票)</span>`:''}</div>
@@ -2041,6 +2085,7 @@ function openShopModal(shopId){
         <button class="vbtn vb-room ${myV==='room'?'selected':''}" onclick="voteInModal('${s.id}','${escName}','room')">喫煙所のみ</button>
         <button class="vbtn vb-nope ${myV==='nope'?'selected':''}" onclick="voteInModal('${s.id}','${escName}','nope')">禁煙</button>
       </div>
+      ${cancelBtnHtml}
       ${voteBars}
     </div>`;
 
@@ -2269,6 +2314,12 @@ document.getElementById('phup-submit').onclick=async function(){
 // モーダル内から投票 → 投票送信 → モーダル再描画して即座に反映
 async function voteInModal(shopId,shopName,type){
   await castVote(shopId,shopName,type);
+  openShopModal(shopId);
+}
+// モーダル内から自分の投票を取り消し → モーダル再描画
+async function cancelVoteInModal(shopId,shopName){
+  if(!confirm('自分の投票を取り消しますか？'))return;
+  await cancelVote(shopId,shopName);
   openShopModal(shopId);
 }
 function closeShopModal(){
